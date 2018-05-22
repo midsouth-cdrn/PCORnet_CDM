@@ -1,0 +1,119 @@
+##  Routine to transform given NDC code (v_ndc) to HIPAA 11-digit format (ret_ndc)
+
+##  Define variables
+
+v_ndc = value of source NDC to be normalized 
+v_rsab = RxNorm root source abbreviation (SAB)
+ret_ndc = string(50);    'the normalized NDC
+v_format = string(50);  'the format of source NDC code
+
+##  Find the format of source NDC value to be normalized
+##  Format can vary from source to source
+
+      IF LEN(v_ndc) - LEN(REPLACE (v_ndc, '-')) = 2  ## If NDC string contains 2 dashes
+      	THEN              ## find the format of the NDC string.  Format could be 6-4-2, 6-4-1, 5-4-2, etc.
+        	 	v_format =
+               		LEN (SUBSTR (v_ndc, 1, INSTR (v_ndc, '-') - 1))  ##  find number of digits before first dash
+            		+ '-'
+            		+ LEN (SUBSTR (v_ndc,
+                              	INSTR (v_ndc, '-') + 1,     ## digit number after first dash
+                               	INSTR (v_ndc, '-', 1, 2) - INSTR (v_ndc, '-')  -1       ## number of digits between first and second dash
+                             	 	) 
+                     	 	)  ## find number of digits between the dashes
+            	+ '-'
+            	+ LEN (SUBSTR (v_ndc, INSTR (v_ndc, '-', 1, 2) + 1))  ## number of digits after second dash
+      END IF  ##  v_format now contains ‘X-X-X’
+
+##  Format has been identified.  Convert into normalized NDC
+
+      IF v_format IS NOT NULL      ##  source NDC string contains dashes
+      	THEN
+         		IF v_format = '6-4-2'   '## drop first digit of string
+         			THEN
+            			ret_ndc =
+                  			SUBSTR (v_ndc, 2, 5)  ## last 5 digits of number before first dash
+               			+ SUBSTR (v_ndc, 8, 4)   ## all four digits after first dash
+               			+ SUBSTR (v_ndc, 13, 2)  ##  last 2 digits after second dash
+         		ELSE IF v_format = '6-4-1'                  ## drop first digit of string
+         			THEN
+            			ret_ndc =
+                  			SUBSTR (v_ndc, 2, 5)
+               			+ SUBSTR (v_ndc, 8, 4)
+               			+ '0'                       ## pad last digit to 2 chars
+               			+ SUBSTR (v_ndc, 13, 1)
+         		ELSE IF v_format = '6-3-2'              ## drop first digit of string
+         			THEN
+           				 ret_ndc =
+                  			SUBSTR (v_ndc, 2, 5)
+               			+ '0'                        ## pad second digit to 4 chars
+               			+ SUBSTR (v_ndc, 8, 3)
+               			+ SUBSTR (v_ndc, 12, 2)
+         		ELSE IF v_format = '6-3-1'             ## drop first digit of string
+         			THEN
+            			ret_ndc =
+                  			SUBSTR (v_ndc, 2, 5)
+               			+ '0'                   ## pad second digit to 4 chars
+               			+ SUBSTR (v_ndc, 8, 3)
+               			+ '0'                  ## pad third digit to 2 chars
+               			+ SUBSTR (v_ndc, 12, 1)
+         		ELSE IF v_format = '5-4-2'             ## keep all digits
+         			THEN
+            			ret_ndc =
+                  			SUBSTR (v_ndc, 1, 5)
+               			+ SUBSTR (v_ndc, 7, 4)
+               			+ SUBSTR (v_ndc, 12, 2)
+         		ELSE IF v_format = '5-4-1'             ## keep all digits
+         			THEN
+            			ret_ndc =
+                  			SUBSTR (v_ndc, 1, 5)
+               			+ SUBSTR (v_ndc, 7, 4)
+               			+ '0'                     ## pad third digit to 2 chars
+               			+ SUBSTR (v_ndc, 12, 1)
+         		ELSE IF v_format = '5-3-2'           ## keep all digits
+         			THEN
+            			ret_ndc =
+                  			SUBSTR (v_ndc, 1, 5)
+               			+ '0'              ##  pad second digit to 4 chars
+               			+ SUBSTR (v_ndc, 7, 3)
+               			+ SUBSTR (v_ndc, 11, 2)
+         		ELSE IF v_format = '4-4-2'  ## keep all digits
+         			THEN
+            			ret_ndc =
+                  			'0'                     ## pad first digit to 5 chars
+               			+ SUBSTR (v_ndc, 1, 4)
+               			+ SUBSTR (v_ndc, 6, 4)
+               			+ SUBSTR (v_ndc, 11, 2)
+         		END IF
+
+     ##  If NDC passed has 11 digits without any '-' then return input NDC as Normalized NDC value
+     ##  NDC string is already in normalized format, it does not contain any dashes
+
+          ELSE IF INSTR (v_ndc, '-') = 0 AND LEN (v_ndc) = 11
+      		THEN
+         			ret_ndc = v_ndc
+       
+      ##  If NDC passed has 12 digits and first char is '0' and its from VANDF then trim first char 
+      ##  VA sometimes pads '0' to make it 12 digit NDC
+
+         	ELSE IF     INSTR (v_ndc, '-') = 0    ## no dashes in string
+            	      	AND LEN (v_ndc) = 12        
+            		AND SUBSTR (v_ndc, 1, 1) = '0'    ## first digit is 0
+            		AND v_rsab = 'VANDF'
+      			THEN
+        				 ret_ndc = SUBSTR (v_ndc, 2)   # return all digits except first char which is 0
+    END IF
+
+      ##  Replace '*' with '0' as some of the NDCs from MTHFDA contain * instead of 0
+
+      ret_ndc = REPLACE (ret_ndc, '*', '0')
+
+       ##  Check to see if NDC value contains any Alphanumeric values, if yes, then its an invalid NDC code
+
+      IF TRIM (TRANSLATE (ret_ndc, '1234567890', ' ')) IS NOT NULL
+      THEN
+         ret_ndc = ''
+      END IF
+
+      RETURN ret_ndc
+
+## For any other cases, return NULL. String cannot be normalized
