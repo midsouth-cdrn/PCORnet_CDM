@@ -2,11 +2,11 @@
 libname CDM 'CHANGE ME'; *Y:/DirectoryA/DirectoryB/;
 
 /* Define the Date to calculate Age off of */
-%let age_calc = 12/31/2017;
+%let age_calc = 03/30/2018;
 
 /* Define date range to check for patient data */
 %let min_date = 01/01/2004;
-%let max_date = 12/31/2017;
+%let max_date = 03/30/2018;
 
 /* BELOW HERE RUNS THE BREAKDOWNS
 		DON'T CHANGE
@@ -154,7 +154,7 @@ title 'Age Breakdown';
 proc tabulate data=demoRanked f=8.0 missing order=data;
 	class age;
 	var rownum;
-	tables age='Current Age' , rownum*(N*F=threhold.)
+	tables age='Current Age' , rownum*(N*F=threshold.)
 		/ MISSTEXT='0'
           PRINTMISS;
 	format age agef. ;
@@ -166,7 +166,7 @@ title 'Gender Breakdown';
 proc tabulate data=demoRanked f=8.0 missing order=data;
 	class sex;
 	var rownum;
-	tables sex='Gender' , rownum*(N*F=threhold.)
+	tables sex='Gender' , rownum*(N*F=threshold.)
 		/ MISSTEXT='0'
           PRINTMISS;
 	format sex $sexf. ;
@@ -178,7 +178,7 @@ title 'Race Breakdown';
 proc tabulate data=demoRanked f=8.0 missing order=data;
 	class race;
 	var rownum;
-	tables race='Race' , rownum*(N*F=threhold.)
+	tables race='Race' , rownum*(N*F=threshold.)
 		/ MISSTEXT='0'
           PRINTMISS;
 	format race $racef. ;
@@ -190,7 +190,7 @@ title 'Ethnicity Breakdown';
 proc tabulate data=demoRanked f=8.0 missing order=data;
 	class hispanic;
 	var rownum;
-	tables hispanic='Ethnicity' , rownum*(N*F=threhold.)
+	tables hispanic='Ethnicity' , rownum*(N*F=threshold.)
 		/ MISSTEXT='0'
           PRINTMISS;
 	format hispanic $ethnicf. ;
